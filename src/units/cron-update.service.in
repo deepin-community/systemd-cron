@@ -1,0 +1,7 @@
+[Unit]
+Description=systemd-cron update units
+Documentation=man:systemd.cron(7)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '>> /run/crond.reboot ; systemctl daemon-reload ; systemctl restart cron.target ; systemctl reset-failed "cron-*.timer"'

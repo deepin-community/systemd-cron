@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+set -u
+
+export NO_COLOR=1
+CRONTAB="*/5 * * * * true"
+
+echo "WHOAMI:"
+whoami
+
+echo "SETTING A CRONTAB (needs working setgid helper):"
+echo "> $CRONTAB"
+echo "$CRONTAB" | crontab
+
+echo "READING BACK CRONTAB:"
+NEW=$(crontab -l)
+echo "< $NEW"
+
+if [ "$NEW" = "$CRONTAB" ]
+then
+    echo OK
+else
+    echo KO
+    exit 1
+fi
+
+echo "REMOVING CRONTAB:"
+crontab -r

@@ -1,5 +1,517 @@
-template-repository (1.0-1) unstable; urgency=medium
+systemd-cron (2.5.1-2) unstable; urgency=medium
 
-  * Initial release
+  * Always ignore unpurged /etc/cron.d/anacron (See #1106000)
 
- -- Tsic404 <liuheng@deepin.org>  Sat, 28 Jan 2023 13:46:49 +0800
+ -- Alexandre Detiste <tchet@debian.org>  Mon, 19 May 2025 09:52:18 +0200
+
+systemd-cron (2.5.1-1) unstable; urgency=medium
+
+  [ Alexandre Detiste ]
+  * X-Style: black
+
+  [ наб ]
+  * New upstream version 2.5.1
+  * d/systemd-cron.docs: install contrib/sendmail-{ala-vixie,apprise,matrix}
+
+ -- наб <nabijaczleweli@nabijaczleweli.xyz>  Tue, 18 Feb 2025 17:06:59 +0100
+
+systemd-cron (2.5.0-1) unstable; urgency=medium
+
+  * New upstream version 2.5.0
+  * update-debian-copyright
+
+ -- наб <nabijaczleweli@nabijaczleweli.xyz>  Tue, 21 Jan 2025 18:50:39 +0100
+
+systemd-cron (2.4.1-1) unstable; urgency=medium
+
+  * New upstream version 2.4.1
+  * Properly clean the dpkg-statoverride on removal
+
+ -- Alexandre Detiste <tchet@debian.org>  Tue, 13 Aug 2024 22:07:42 +0200
+
+systemd-cron (2.4.0-1) unstable; urgency=medium
+
+  * New upstream version 2.4.0 that implements the '%' operator.
+
+ -- Alexandre Detiste <tchet@debian.org>  Mon, 29 Apr 2024 21:36:38 +0200
+
+systemd-cron (2.3.4-1) unstable; urgency=medium
+
+  * New upstream version 2.3.4 (Closes: #1062357)
+
+ -- Alexandre Detiste <tchet@debian.org>  Tue, 26 Mar 2024 21:48:15 +0100
+
+systemd-cron (2.3.2-1) unstable; urgency=medium
+
+  * New bugfix upstream version 2.3.2
+
+ -- Alexandre Detiste <tchet@debian.org>  Sun, 11 Feb 2024 21:37:18 +0100
+
+systemd-cron (2.3.1-1) unstable; urgency=medium
+
+  * New upstream version 2.3.1
+
+  [ наб ]
+  * Don't build-depend on shellcheck
+  * d/control: Build-Depends: libssl-dev -> libmd-dev
+
+ -- Alexandre Detiste <tchet@debian.org>  Sun, 11 Feb 2024 18:56:02 +0100
+
+systemd-cron (2.3.0-2) unstable; urgency=medium
+
+  * Misc. administrative tasks to clean up tracker:
+    * Salsa VCS: git repository was moved to systemd team.
+    * Update my email address to @debian.org one.
+    * Close old Ubuntu bugs:
+      * (LP: #1685364) not reproducible
+      * (LP: #1583743) WONTFIX, this is a private API in /usr/libexec
+
+ -- Alexandre Detiste <tchet@debian.org>  Wed, 29 Nov 2023 12:44:45 +0100
+
+systemd-cron (2.3.0-1) unstable; urgency=low
+
+  * New upstream version, more stabilizing after C++ rewrite.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 14 Oct 2023 13:49:44 +0200
+
+systemd-cron (2.2.0-1) unstable; urgency=low
+
+  * sync description with src:cron, systemd-cron now attempts
+    to have feature parity with cron & cronie.
+  * do not 'Replaces: cron', it is not needed anymore
+    since the cron-daemon-common split.
+  * lintian:
+    * debian-rules-parses-dpkg-parsechangelog
+    * override_dh_auto_test-does-not-check-DEB_BUILD_OPTIONS
+  * add aide-common to heuristic table
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 24 Sep 2023 13:11:21 +0200
+
+systemd-cron (2.1.3-1) unstable; urgency=low
+
+  * do not strip '> /dev/null' from the end of crontab anymore
+    (Closes: #1051805)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 13 Sep 2023 10:41:30 +0200
+
+systemd-cron (2.1.2-1) unstable; urgency=low
+
+  * define 'SyslogFacility=cron' to avoid sending unexpected
+    extraneous 'OnSuccess=' e-mails for some jobs that uses PAM facility.
+  * add a new heuristic rule for the upcoming version of lighttpd.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Mon, 11 Sep 2023 09:41:59 +0200
+
+systemd-cron (2.1.1-1) unstable; urgency=low
+
+  * Release to unstable.
+
+  [ наб ]
+  * Add NEWS mentioning the new mail setup
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 09 Sep 2023 17:52:04 +0200
+
+systemd-cron (2.1.0-1) experimental; urgency=low
+
+  * New upstream version that behaves more like Vixie-cron,
+    by default it will generate an e-mail if output is non-empty.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Fri, 08 Sep 2023 16:58:02 +0200
+
+systemd-cron (2.0.2-1) unstable; urgency=low
+
+  [ наб ]
+  * Run test-nounshare instead of exporting executables as 'skip'
+
+  [ Alexandre Detiste ]
+  * ease up backport to bookworm
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Fri, 01 Sep 2023 16:36:14 +0200
+
+systemd-cron (2.0.1-2) unstable; urgency=low
+
+  * Release to unstable
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 27 Aug 2023 21:20:00 +0200
+
+systemd-cron (2.0.1-1) experimental; urgency=medium
+
+  * New upstream version 2.0.1 with polished build system & tests
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 22 Aug 2023 01:15:43 +0200
+
+systemd-cron (2.0-1) experimental; urgency=medium
+
+  [ наб ]
+  * New Upstream release, C++ rewrite.
+  * Axe python dependencies. remove old __pycache__/ on upgrade.
+  * Add voreutils.hpp's 0BSD to d/copyright.
+  * String up upstream tests for autopkgtest
+  * Machine-read the whole archive to feed the
+    /etc/cron.<sched>/<job> -> <job>.timer exception list.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 16 Aug 2023 23:31:57 +0200
+
+systemd-cron (1.16.7-1) unstable; urgency=low
+
+  * Add dependencies on `pkgconf` & `systemd-dev`
+    to get the generator & unit paths, this means that the
+    final step of UsrMerge can be done with just a BinNMU.
+
+  * Adding наб - new upstream who is also a Debian user -
+    as an Uploader so they get a copy of the bug repports.
+  * move back generated cron-{daily|weekly|monthly} at 6am.
+    This behaviours was lost in 1.15.21-1.
+    Now systemd-cron obey the /etc/crontab
+    shipped by cron-daemon-common.
+    This file can be altered by the administrator to his/her taste.
+  * Add minimal autopkgtests stubs,
+    next upstream version will include an extensive test suite.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 16 Aug 2023 21:12:30 +0200
+
+systemd-cron (1.16.5-1) unstable; urgency=low
+
+  * New upstream version 1.16.5
+  * move private helper binaries from /lib/systemd-cron
+    to /usr/libexec/systemd-cron
+  * re-enable tests
+    * add pyflakes3 and shellcheck to build-dependencies
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 09 Aug 2023 18:24:55 +0200
+
+systemd-cron (1.16.2-1) unstable; urgency=low
+
+  * compatibility with Python3.12+ (Closes: #1042370)
+  * fix regression in expansion of commands starting with tilde
+    (Closes: #1042363), thanks to Ben Hutchings.
+  * fix regression in crontab (Closes: #1041911)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 29 Jul 2023 16:31:04 +0200
+
+systemd-cron (1.16.1-1) unstable; urgency=low
+
+  * fix syntax error in crontab (Closes: #1041878)
+  * fix cross-building (Closes: #1041785)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Mon, 24 Jul 2023 23:39:31 +0200
+
+systemd-cron (1.16-1) unstable; urgency=low
+
+  * major rewrite in an OO fashion
+  * inherit MAILTO variable in /etc/crontab into other jobs
+    as a fallback (Closes: #1040685)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 22 Jul 2023 18:14:03 +0200
+
+systemd-cron (1.15.22-1) unstable; urgency=medium
+
+  * do not ship the disabled cron-{hourly|weekly|monthly}.{service|timer}
+    anymore.
+  * add CRON 'sysstat' => systemd 'systat-collect' + 'sysstat-summary'
+    to the detection heurstic.
+  * Update standards version to 4.6.2, no changes needed.
+  * improve bug reporting script
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 04 Jul 2023 19:13:20 +0200
+
+systemd-cron (1.15.21-1) unstable; urgency=low
+
+  * do not use "run-parts" anymore to execute /etc/cron.{hourly|weekly|monthly}
+    and instead generate a .timer+.service pair by item.
+    Most prominent Debian packages already provide their own .timer:
+    apt, dpkg, man-deb, plocate ... in this case systemd-cron does nothing.
+
+  * simplify conflicts: only conflict on virtual cron-daemon and anacron
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Fri, 23 Jun 2023 15:54:57 +0200
+
+systemd-cron (1.15.20-1) unstable; urgency=medium
+
+  * fix sending of Unicode emails
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Fri, 10 Mar 2023 14:26:58 +0100
+
+systemd-cron (1.15.19-5) unstable; urgency=medium
+
+  * /etc/cron.yearly/.placeholder is now owned by
+    "cron-daemon-common" (Closes: #1031247)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 14 Feb 2023 22:23:19 +0100
+
+systemd-cron (1.15.19-4) unstable; urgency=medium
+
+  * Non-source change rebuild with updated dh-cruft. (Closes: #1030024)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 31 Jan 2023 08:00:40 +0100
+
+systemd-cron (1.15.19-3) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Remove constraints unnecessary since buster (oldstable):
+    + systemd-cron: Drop versioned constraint on systemd-sysv in Depends.
+  * debian/watch: Use GitHub /tags rather than /releases page.
+  * Update standards version to 4.6.1, no changes needed.
+
+  [ Alexandre Detiste ]
+  * Build using dh-cruft
+  * Demote mta from Recommends: to Suggests: as most users of
+    systemd-cron would not need the (minimalistic)
+    email-on-error feature. Users depending on the email-on-output
+    behaviour for they workflow should better stay with vixie-cron.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 28 Jan 2023 16:15:03 +0100
+
+systemd-cron (1.15.19-2) unstable; urgency=low
+
+  * Enable removal in an unbooted filesystem (Closes: #1019035).
+    Thanks RjY.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 06 Sep 2022 15:36:20 +0200
+
+systemd-cron (1.15.19-1) unstable; urgency=low
+
+  * Ack NMU 1.15.18-1.1
+  * Do not Ack NUM 1.15.18-1.2 - #773095 is a src:cron bug,
+    not src:systemd-cron.
+    src:cron commit 06a0a15acc932b1696f33120b111204d0237e954
+    is not the right thing to do as I agreed back in 2014;
+    the "cron-daemon-common" was the right to do from the start.
+  * /etc/cron.allow and /etc/cron.deny are now solely handled by
+    cron-daemon-common, trimming postinst script.
+  * Enable cron.yearly per request (Closes: #1002925)
+  * Update watch file to version 4
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 16 Jul 2022 21:43:10 +0200
+
+systemd-cron (1.15.18-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload. (closes: #1012596)
+  * added a pre-depends clause on cron-daemon-common, which installs
+    templates and directories for crontabs: this package will be a
+    common pre-dependency for packages systemd-cron, cron, cronie, bcron.
+  * added Conficts/Replaces clauses to interact with other packages
+    which provide cron-daemon and do not yet pre-depend on cron-daemon-common
+  * modified the list of installed files.
+
+ -- Georges Khaznadar <georgesk@debian.org>  Mon, 13 Jun 2022 18:14:37 +0200
+
+systemd-cron (1.15.18-1) unstable; urgency=medium
+
+  * New upstream release
+  * Fix cron-failure@.service delivery fails due to DynamicUser with exim
+    (Closes: #998242)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 26 Dec 2021 16:52:10 +0100
+
+systemd-cron (1.5.17-3) unstable; urgency=high
+
+  * Sync with latest src:cron, to avoid old bugs in this codebase
+    (892720, 892721, 892724).
+  * (Closes: #992748), again
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 08 Sep 2021 22:45:08 +0200
+
+systemd-cron (1.5.17-2) unstable; urgency=high
+
+  * Fix CVE-2017-9525 as inherited from forked src:cron packaging
+    (Closes: #992748, #993731)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 08 Sep 2021 09:57:42 +0200
+
+systemd-cron (1.5.17-1) unstable; urgency=low
+
+  * New upstream release
+  * Use "DynamicUser=yes" instead of "User=nodoby" (Closes: #969329, #976858)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 22 Aug 2021 16:24:10 +0200
+
+systemd-cron (1.5.16-1) unstable; urgency=low
+
+  * New upstream release
+  * fix typo in package decription (Closes: #949851)
+  * do not run backup files in /etc/cron.d/ (Closes: #929763)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 20 Dec 2020 22:33:59 +0100
+
+systemd-cron (1.5.15-1) unstable; urgency=low
+
+  * New upstream release
+  * Switch to debhelper-compat 13
+  * Bump Standard-Version to 4.5.0, no change needed
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 20 Oct 2020 21:06:05 +0200
+
+systemd-cron (1.5.14-2) unstable; urgency=medium
+
+  * Hosting moved from Alioth to Salsa, to my own repo for now,
+    collaborative maintenance offers are welcome.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 17 Nov 2018 15:10:07 +0100
+
+systemd-cron (1.5.14-1) unstable; urgency=medium
+
+  * Python 3.7 compatibility
+  * Allow sending mail_on_error email when locale is not correctly set
+    (Closes: #792777)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 11 Nov 2018 16:16:53 +0100
+
+systemd-cron (1.5.13-1) unstable; urgency=medium
+
+  * remove obsolete hack of $$(bindir) in Makefile
+  * escape '%' in unit description (Closes: #887847)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Wed, 28 Mar 2018 22:58:07 +0200
+
+systemd-cron (1.5.12-2) unstable; urgency=medium
+
+  * Switch to Debhelper 11
+  * update to Standards-Version: 4.1.3: no change needed
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 07 Jan 2018 13:05:44 +0100
+
+systemd-cron (1.5.12-1) unstable; urgency=medium
+
+  * New upstream release
+  * add support for RandomizedDelaySec (LP: #1586626)
+  * set Rules-Requires-Root: no
+  * update to Standards Version 4.1.2: switch priority to optional
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Fri, 08 Dec 2017 11:28:24 +0100
+
+systemd-cron (1.5.10-1) unstable; urgency=medium
+
+  * New upstream release that fixes a regression in
+    the handling of crontab masked by timers introduced in 1.5.9.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 01 Jul 2017 01:46:09 +0200
+
+systemd-cron (1.5.9-1) unstable; urgency=low
+
+  * New upstream release
+  * Second attempt that /usr/bin/crontab isn't setgid anymore when switching
+    from Vixie-cron (Closes: #820088, again).
+  * stop cron-update.path before removal (Closes: #857159)
+  * Bump Standards-Version, no change needed
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 18 Jun 2017 19:43:46 +0200
+
+systemd-cron (1.5.8-1) unstable; urgency=medium
+
+  * New upstream release, fix various off-by-one errors (Closes: #825880)
+  * Drop CPPFLAGS patch, applied upstream.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 15 Jan 2017 22:20:18 +0100
+
+systemd-cron (1.5.4-4) unstable; urgency=medium
+
+  * Fix cron-weekly & cron-monthly regression from yesterday's release.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sun, 08 Jan 2017 14:05:37 +0100
+
+systemd-cron (1.5.4-3) unstable; urgency=medium
+
+  * Switch to debhelper 10.
+  * Hint at some limitations in the package description (Closes: #825885)
+  * Run hourly, daily, weekly & monthly jobs in staggered manner
+    to avoid CPU/bandwith/IO peaks (Closes: #850435)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Sat, 07 Jan 2017 20:55:05 +0100
+
+systemd-cron (1.5.4-2) unstable; urgency=medium
+
+  * Ensure that /usr/bin/crontab isn't setgid anymore when switching
+    from Vixie-cron (Closes: #820088).
+  * Bump Standards-Version to 3.9.8, no changes needed.
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Fri, 06 May 2016 20:37:29 +0200
+
+systemd-cron (1.5.4-1) unstable; urgency=low
+
+  * New upstream release
+  * Use https for Vcs-Browser & Vcs-Git
+  * Enable C setgid crontab helper (Closes: #766053, #780685)
+  * change arch from 'all' to 'linux-any', needed for setgid helper
+    + upcoming rewrite of generator in C
+  * enable hardening, add patch to honor CPPFLAGS
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Thu, 28 Jan 2016 09:44:29 +0100
+
+systemd-cron (1.5.3-1) unstable; urgency=medium
+
+  * New upstream release
+  * Fix piuparts error: when package is removed but not purged and
+    python3 is not installed, /etc/cron.weeky/systemd-cron would fail.
+    (Closes: #787611)
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 27 Oct 2015 23:14:36 +0100
+
+systemd-cron (1.5.2-1) unstable; urgency=medium
+
+  * Adopt package
+  * New upstream version
+  * Switch from Python2 to Python3
+  * Set-up remove_stale_stamps as /etc/cron.weekly/systemd-cron
+  * Properly attribute copyright of crontab.5
+  * Closes: #766348 : generator does not parse ranges correctly
+  * Closes: #767951 : "crontab -r user" will remove root crontab
+  * Closes: #766756 : does not mail user in case of job errors
+    + Recommends: exim4 | mail-transport-agent
+  * Closes: #766757 : services should Requires=systemd-user-sessions.service
+  * Closes: #766902 : @reboot jobs are run on package installation
+  * Closes: #766764 : support ~/... to /home/user/... expansion
+  * Closes: #766763 : support @annually
+  * Closes: #770144 : ignore /etc/cron.d/*.dpkg-*
+  * disable tests, as they break on pbuilder, and duplicate lintian tests
+  * Closes: #776859 : don't call systemctl daemon-reload twice in postrm
+  * Closes: #766345 : /usr/bin/crontab doesn't reject invalid crontabs
+
+ -- Alexandre Detiste <alexandre.detiste@gmail.com>  Tue, 26 May 2015 10:01:46 +0100
+
+systemd-cron (1.3.1+ds1-2) unstable; urgency=medium
+
+  [ Alexandre Detiste ]
+  * move from section 'utils' to section 'admin'
+  * provide sample /etc/crontab & /etc/anacrontab
+  * trim debian/rules, provide debian/install
+  * add a postrm script that remove timer stamps on purge
+  * remove inactive patch
+
+ -- Michael Stapelberg <stapelberg@debian.org>  Tue, 14 Oct 2014 09:40:12 +0200
+
+systemd-cron (1.3.1+ds1-1) unstable; urgency=medium
+
+  [ Alexandre Detiste ]
+  * demote priority to extra
+  * systemd >= 212 is now avaible in testing, we can enable persistent timers
+  * Depends on systemd-sysv to ensure that systemd is running
+  * Update standards-version to 3.9.6: no changes needed
+
+  [ Michael Stapelberg ]
+  * switch to pristine-tar and a separate upstream branch, use original
+    orig.tar.gz tarball.
+
+ -- Michael Stapelberg <stapelberg@debian.org>  Tue, 07 Oct 2014 09:40:12 +0200
+
+systemd-cron (1.3.1-1) unstable; urgency=medium
+
+  [ Alexandre Detiste ]
+  * New upstream version.
+  * New upstream URL https://github.com/systemd-cron/systemd-cron
+  * Closes: #752376 does not meet requirements for cron-daemon
+  * Closes: #758036 typo in package description
+  * New dependency of Python, needed by new systemd-crontab-generator
+  * Turn quilt patch that remove cron.boot into a configure option
+  * Update standards-version to 3.9.5: no changes needed
+
+  [ Michael Stapelberg ]
+  * Review of changes, add myself to uploaders
+
+ -- Michael Stapelberg <stapelberg@debian.org>  Wed, 01 Oct 2014 09:43:21 +0200
+
+systemd-cron (1.1.1-1) unstable; urgency=low
+
+  * Initial release. (Closes: #718910)
+
+ -- Shawn Landden <shawnlandden@gmail.com>  Tue, 06 Aug 2013 14:09:52 -0700

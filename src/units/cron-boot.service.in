@@ -1,0 +1,15 @@
+[Unit]
+Description=systemd-cron @schedule@ script service
+Documentation=man:systemd.cron(7)
+PartOf=cron-@schedule@.target
+ConditionDirectoryNotEmpty=/etc/cron.@schedule@
+ConditionPathExists=!/run/crond.bootdir
+OnFailure=cron-mail@%n:Failure.service
+
+[Service]
+User=root
+Type=oneshot
+IgnoreSIGPIPE=false
+SyslogFacility=cron
+ExecStart=/usr/bin/run-parts /etc/cron.@schedule@
+ExecStartPost=/usr/bin/touch /run/crond.bootdir

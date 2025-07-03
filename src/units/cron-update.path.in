@@ -1,0 +1,9 @@
+[Unit]
+Description=systemd-cron path monitor
+Documentation=man:systemd.cron(7)
+
+[Path]
+PathChanged=/etc/crontab
+PathChanged=/etc/cron.d
+PathChanged=/etc/anacrontab
+PathChanged=@statedir@

@@ -1,0 +1,2 @@
+#!/bin/sh
+M_F_J=/usr/libexec/systemd-cron/mail_for_job exec unshare -ru test/test-m_f_j "$(dpkg-parsechangelog -SVersion)"

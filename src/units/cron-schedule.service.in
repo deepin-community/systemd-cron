@@ -1,0 +1,14 @@
+[Unit]
+Description=systemd-cron @schedule@ script service
+Documentation=man:systemd.cron(7)
+PartOf=cron-@schedule@.target
+ConditionDirectoryNotEmpty=/etc/cron.@schedule@
+OnFailure=cron-mail@%n:Failure.service
+
+[Service]
+User=root
+Type=oneshot
+IgnoreSIGPIPE=false
+SyslogFacility=cron
+LogLevelMax=@use_loglevelmax@
+ExecStart=/usr/bin/run-parts /etc/cron.@schedule@

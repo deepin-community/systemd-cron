@@ -1,0 +1,13 @@
+systemd-cron (2.1.1-1) unstable; urgency=low
+
+  Starting with version 2.1.0, systemd-cron sends e-mail with job output
+  if the job succeeds and output anything, matching classic cron behaviour.
+
+  To return to pre-2.1.0 behaviour ‒ only sending mail on job failure ‒
+  set CRON_MAIL_SUCCESS=never in /etc/crontab.
+  To configure full classic-cron compat ‒ sending just the job output ‒
+  set CRON_MAIL_FORMAT=nometadata in /etc/crontab.
+
+  See crontab(5) and systemd.cron(7) for more on tuning the new mail system.
+
+ -- наб <nabijaczleweli@nabijaczleweli.xyz>  Sat, 09 Sep 2023 14:39:37 +0200

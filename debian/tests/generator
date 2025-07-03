@@ -1,0 +1,6 @@
+#!/bin/sh
+if ! test -x /usr/lib/sendmail
+then
+    ln -s /bin/true /usr/lib/sendmail
+fi
+S_C_G=/lib/systemd/system-generators/systemd-crontab-generator exec unshare -rm test/test-generator no /var/spool/cron/crontabs

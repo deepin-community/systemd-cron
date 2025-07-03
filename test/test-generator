@@ -1,0 +1,371 @@
+#!/bin/sh
+# expects to run as root of a mountns
+S_C_G="${S_C_G:-"$PWD/out/build/bin/systemd-crontab-generator"}"
+TESTDIR="$PWD/test/"
+PATH="/usr/bin:$PATH"
+SENDMAIL='/bin/true'
+export SENDMAIL  # s-c-g won't generate On{Success,Failure}= lines if it doesn't have sendmail
+
+USE_RUN_PARTS="${1:-no}"
+echo "USE_RUN_PARTS: $USE_RUN_PARTS"
+HAVE_ONSUCCESS="${3:-yes}"
+echo "HAVE_ONSUCCESS: $HAVE_ONSUCCESS"
+
+mount -t tmpfs tmpfs /etc || exit
+STATEDIR="${2:-"/var/spool/cron"}"
+if [ -d "$STATEDIR" ]; then
+	mount -t tmpfs tmpfs "$STATEDIR" || exit
+fi
+
+
+err=0
+assert_key() {  # file k v testname
+	# TODO: roll back to no special-case if we ever bump past the systemd ≥ 236 requirement (this is 249); cf. #165
+	[ "$2" = ExecStart ] && [ "$HAVE_ONSUCCESS" = no ] && greparg=-m1 || greparg=
+	[ "$2" = OnSuccess ] && [ "$HAVE_ONSUCCESS" = no ] && set -- "$1" "ExecStart" "-+/usr/bin/systemctl start --no-block $3" "$4" && postgrep() { tail -n+2; } || postgrep() { cat; }
+	val="$(grep $greparg "^$2=" "$1" | postgrep)"
+	[ "${val#"$2="}" = "$3" ] || { err=1; echo "$4: $1: $val != $3" >&2; }
+}
+
+assert_ney() {  # file k testname
+	val="$(grep "^$2=" "$1")" && { err=1; echo "$3: $1: $val exists" >&2; }
+}
+
+assert_dat() {  # file content testname
+	printf '%s\n' "$2" | cmp -s - "$1" || { err=1; echo "$3: $(cat "$1") != $2" >&2; }
+}
+
+{
+	mkdir -p /etc/home/dummy
+	> /etc/a%b%c
+	> /etc/home/dummy/a%b%c
+	echo 'dummy:x:12:34:dummy:/etc/home/dummy:/bin/sh' > /etc/passwd
+
+	mkdir /etc/cron.d
+	printf '%s\n' '# test_no_scriptlet'                                       \
+	              '@daily dummy /bin/true'                                    \
+	                                                                          \
+	              '# test_period_basic'                                       \
+	              'SHELL=/bin/dash'                                           \
+	              '@daily dummy true'                                         \
+	              'SHELL=/bin/sh'                                             \
+	                                                                          \
+	              '# test_userpath_expansion'                                 \
+	              '@daily dummy ~/fake >/dev/null'                            \
+	                                                                          \
+	              '# test_timespec_basic'                                     \
+	              '5 6 * * * dummy true'                                      \
+	                                                                          \
+	              '# test_timespec_slice'                                     \
+	              '*/5 * * * * dummy true'                                    \
+	                                                                          \
+	              '# test_timespec_range'                                     \
+	              '1 * * * mon-wed dummy true'                                \
+	                                                                          \
+	              '# test_tz'                                                 \
+	              'TZ=:Europe/Warsaw'                                         \
+	              'BATCH=1'                                                   \
+	              '1 * * * mon-wed dummy echo in zoneinfo'                    \
+	              'TZ=UTC0'                                                   \
+	              'BATCH=0'                                                   \
+	              '1 * * * mon-wed dummy echo valid $TZ, but not in zoneinfo' \
+	              'TZ='                                                       \
+	                                                                          \
+	              '# test_cron_mail_success'                                  \
+	              'CRON_MAIL_SUCCESS=always'                                  \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=yes'                                     \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=true'                                    \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=1'                                       \
+	              '* * * * * dummy :'                                         \
+	                                                                          \
+	              'CRON_MAIL_SUCCESS=never'                                   \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=no'                                      \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=false'                                   \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=0'                                       \
+	              '* * * * * dummy :'                                         \
+	                                                                          \
+	              'CRON_MAIL_SUCCESS=inherit'                                 \
+	              '* * * * * dummy :'                                         \
+	                                                                          \
+	              'CRON_MAIL_SUCCESS=nonempty'                                \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_SUCCESS=non-empty'                               \
+	              '* * * * * dummy :'                                         \
+	                                                                          \
+	              '# test_cron_mail_format'                                   \
+	              'CRON_MAIL_FORMAT=normal'                                   \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_FORMAT=nometadata'                               \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_FORMAT=inherit'                                  \
+	              '* * * * * dummy :'                                         \
+	              'CRON_MAIL_FORMAT=no-metadata'                              \
+	              '* * * * * dummy :'                                         > /etc/crontab
+	printf '%s\n' '# test_MAIL_inherit_default'                               \
+	              '* * * * * dummy !'                                         \
+	              '# test_MAIL_inherit_partial'                               \
+	              'CRON_MAIL_SUCCESS=never'                                   \
+	              '* * * * * dummy !'                                         \
+	              '# test_MAIL_inherit_explicit'                              \
+	              'CRON_MAIL_SUCCESS=inherit'                                 \
+	              '* * * * * dummy !'                                         \
+	              ''                                                          \
+	              '# test_fri-sun'                                            \
+	              '* * * * fri-sun dummy !'                                   \
+	                                                                          \
+	              '# test_percent'                                            \
+	              '* * * * * dummy /etc/a\%b\%c'                              \
+	              '* * * * * dummy ~/a\%b\%c'                                 \
+	              '* * * * * dummy echo a\%b\%c'                              \
+	              '* * * * * dummy echo a; cat%b%c\%d'                        \
+	              '* * * * * dummy echo a; cat%b %c\%d%'                      \
+	              '* * * * * dummy echo a; cat%b % c\%d%%'                    \
+	              '* * * * * dummy echo a; cat%b % c\%d%%%'                   \
+	              '* * * * * dummy echo a; cat%b % c\%d%%%%'                  > /etc/cron.d/crondtab
+
+	printf '%s\n' '# test_percent_anacrontab'                                 \
+	              '1 0 anacrussy echo a\%b\%c'                                \
+	              '1 0 anacrussy echo a; cat%b%c\%d'                          > /etc/anacrontab
+
+
+	"$S_C_G" /etc/out || { err=$?; echo "$S_C_G" /etc/out = $err >&2; exit $err; }
+	cd /etc/out || exit
+	assert_key cron-crontab-dummy-e0b1d8dd8cff486372199f7c71b842d1.timer   'OnCalendar' 'daily'         test_no_scriptlet
+	assert_key cron-crontab-dummy-e0b1d8dd8cff486372199f7c71b842d1.service 'ExecStart'  '/bin/true'     test_no_scriptlet
+
+	assert_key cron-crontab-dummy-d441f91bec8513ca5d4aa275d61ba4d5.timer   'OnCalendar' 'daily'                                                                     test_period_basic
+	assert_key cron-crontab-dummy-d441f91bec8513ca5d4aa275d61ba4d5.service 'ExecStart'  '/bin/dash /etc/out/cron-crontab-dummy-d441f91bec8513ca5d4aa275d61ba4d5.sh' test_period_basic
+	assert_dat cron-crontab-dummy-d441f91bec8513ca5d4aa275d61ba4d5.sh      'true'                                                                                   test_period_basic
+
+	assert_key cron-crontab-dummy-de72613675650ff5241aa33a51102b29.service 'ExecStart'  '/bin/sh /etc/out/cron-crontab-dummy-de72613675650ff5241aa33a51102b29.sh' test_userpath_expansion
+	assert_dat cron-crontab-dummy-de72613675650ff5241aa33a51102b29.sh      '/etc/home/dummy/fake >/dev/null'                                                      test_userpath_expansion
+
+	assert_key cron-crontab-dummy-0.timer   'OnCalendar' '*-*-* 6:5:00'                                 test_timespec_basic
+	assert_key cron-crontab-dummy-1.timer   'OnCalendar' '*-*-* *:0,5,10,15,20,25,30,35,40,45,50,55:00' test_timespec_slice
+	assert_key cron-crontab-dummy-2.timer   'OnCalendar' 'Mon,Tue,Wed *-*-* *:1:00'                     test_timespec_range
+
+	assert_key cron-crontab-dummy-3.timer   'OnCalendar'          'Mon,Tue,Wed *-*-* *:1:00 Europe/Warsaw' test_tz  # systemd accepts zones it finds in the zoneinfo file, but only by exact match
+	assert_key cron-crontab-dummy-4.timer   'OnCalendar'          'Mon,Tue,Wed *-*-* *:1:00'               test_tz  # TZ=UTC0 is valid (as is TZ=UTC2), but systemd doesn't accept it as a suffix
+	assert_key cron-crontab-dummy-3.service 'CPUSchedulingPolicy' 'idle'                                   test_BATCH
+	assert_ney cron-crontab-dummy-4.service 'CPUSchedulingPolicy'                                          test_BATCH
+	assert_key cron-crontab-dummy-4.service 'WorkingDirectory'    '-~'                                     test_BATCH
+
+	assert_key cron-crontab-dummy-4.service  'OnSuccess' 'cron-mail@%n:Success:nonempty.service'            test_cron_mail_success_default
+	assert_key cron-crontab-dummy-4.service  'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success_default
+	assert_key cron-crontab-dummy-5.service  'OnSuccess' 'cron-mail@%n:Success.service'                     test_cron_mail_success=always
+	assert_key cron-crontab-dummy-5.service  'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=always
+	assert_key cron-crontab-dummy-6.service  'OnSuccess' 'cron-mail@%n:Success.service'                     test_cron_mail_success=yes
+	assert_key cron-crontab-dummy-6.service  'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=yes
+	assert_key cron-crontab-dummy-7.service  'OnSuccess' 'cron-mail@%n:Success.service'                     test_cron_mail_success=true
+	assert_key cron-crontab-dummy-7.service  'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=true
+	assert_key cron-crontab-dummy-8.service  'OnSuccess' 'cron-mail@%n:Success.service'                     test_cron_mail_success=1
+	assert_key cron-crontab-dummy-8.service  'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=1
+	assert_ney cron-crontab-dummy-9.service  'OnSuccess'                                                    test_cron_mail_success=never
+	assert_key cron-crontab-dummy-9.service  'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=never
+	assert_ney cron-crontab-dummy-10.service 'OnSuccess'                                                    test_cron_mail_success=no
+	assert_key cron-crontab-dummy-10.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=no
+	assert_ney cron-crontab-dummy-11.service 'OnSuccess'                                                    test_cron_mail_success=false
+	assert_key cron-crontab-dummy-11.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=false
+	assert_ney cron-crontab-dummy-12.service 'OnSuccess'                                                    test_cron_mail_success=0
+	assert_key cron-crontab-dummy-12.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=0
+	assert_key cron-crontab-dummy-13.service 'OnSuccess' 'cron-mail@%n:Success:nonempty.service'            test_cron_mail_success=inherit  # same as default at toplevel
+	assert_key cron-crontab-dummy-13.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=inherit
+	assert_key cron-crontab-dummy-14.service 'OnSuccess' 'cron-mail@%n:Success:nonempty.service'            test_cron_mail_success=nonempty
+	assert_key cron-crontab-dummy-14.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=nonempty
+	assert_key cron-crontab-dummy-15.service 'OnSuccess' 'cron-mail@%n:Success:nonempty.service'            test_cron_mail_success=non-empty
+	assert_key cron-crontab-dummy-15.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_success=non-empty
+	assert_key cron-crontab-dummy-16.service 'OnSuccess' 'cron-mail@%n:Success:nonempty.service'            test_cron_mail_format=normal
+	assert_key cron-crontab-dummy-16.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_format=normal
+	assert_key cron-crontab-dummy-17.service 'OnSuccess' 'cron-mail@%n:Success:nonempty:nometadata.service' test_cron_mail_format=nometadata
+	assert_key cron-crontab-dummy-17.service 'OnFailure' 'cron-mail@%n:Failure:nometadata.service'          test_cron_mail_format=nometadata
+	assert_key cron-crontab-dummy-18.service 'OnSuccess' 'cron-mail@%n:Success:nonempty.service'            test_cron_mail_format=inherit  # same as default at toplevel
+	assert_key cron-crontab-dummy-18.service 'OnFailure' 'cron-mail@%n:Failure.service'                     test_cron_mail_format=inherit
+	assert_key cron-crontab-dummy-19.service 'OnSuccess' 'cron-mail@%n:Success:nonempty:nometadata.service' test_cron_mail_format=no-metadata
+	assert_key cron-crontab-dummy-19.service 'OnFailure' 'cron-mail@%n:Failure:nometadata.service'          test_cron_mail_format=no-metadata
+
+	assert_key cron-crondtab-dummy-0.service 'OnSuccess' 'cron-mail@%n:Success:nonempty:nometadata.service' test_MAIL_inherit_default
+	assert_key cron-crondtab-dummy-0.service 'OnFailure' 'cron-mail@%n:Failure:nometadata.service'          test_MAIL_inherit_default
+	assert_ney cron-crondtab-dummy-1.service 'OnSuccess'                                                    test_MAIL_inherit_partial
+	assert_key cron-crondtab-dummy-1.service 'OnFailure' 'cron-mail@%n:Failure:nometadata.service'          test_MAIL_inherit_partial
+	assert_key cron-crondtab-dummy-2.service 'OnSuccess' 'cron-mail@%n:Success:nonempty:nometadata.service' test_MAIL_inherit_explicit
+	assert_key cron-crondtab-dummy-2.service 'OnFailure' 'cron-mail@%n:Failure:nometadata.service'          test_MAIL_inherit_explicit
+
+	assert_key cron-crondtab-dummy-3.timer   'OnCalendar' 'Fri,Sat,Sun *-*-* *:*:00'                        test_fri-sun
+
+	assert_key cron-crondtab-dummy-4.service 'ExecStart'     '/etc/a%b%c'                                      test_percent
+	assert_key cron-crondtab-dummy-5.service 'ExecStart'     '/etc/home/dummy/a%b%c'                           test_percent
+	assert_key cron-crondtab-dummy-6.service 'ExecStart'     '/bin/sh /etc/out/cron-crondtab-dummy-6.sh'       test_percent
+	assert_dat cron-crondtab-dummy-6.sh      'echo a%b%c'                                                      test_percent
+	assert_key cron-crondtab-dummy-7.service 'ExecStart'     '/bin/sh /etc/out/cron-crondtab-dummy-7.sh'       test_percent
+	assert_key cron-crondtab-dummy-7.service 'StandardInput' 'data'                                            test_percent
+	assert_key cron-crondtab-dummy-7.service 'StandardInputData' "$(printf 'b\nc%%d' | base64 -w0)"            test_percent
+	assert_dat cron-crondtab-dummy-7.sh      'echo a; cat'                                                     test_percent
+	assert_key cron-crondtab-dummy-8.service 'ExecStart'     '/bin/sh /etc/out/cron-crondtab-dummy-8.sh'       test_percent
+	assert_key cron-crondtab-dummy-8.service 'StandardInput' 'data'                                            test_percent
+	assert_key cron-crondtab-dummy-8.service 'StandardInputData' "$(printf 'b \nc%%d\n' | base64 -w0)"         test_percent
+	assert_dat cron-crondtab-dummy-8.sh      'echo a; cat'                                                     test_percent
+	assert_key cron-crondtab-dummy-9.service 'ExecStart'     '/bin/sh /etc/out/cron-crondtab-dummy-9.sh'       test_percent
+	assert_key cron-crondtab-dummy-9.service 'StandardInput' 'data'                                            test_percent
+	assert_key cron-crondtab-dummy-9.service 'StandardInputData' "$(printf 'b \n c%%d\n\n' | base64 -w0)"      test_percent
+	assert_dat cron-crondtab-dummy-9.sh      'echo a; cat'                                                     test_percent
+	assert_key cron-crondtab-dummy-10.service 'ExecStart'     '/bin/sh /etc/out/cron-crondtab-dummy-10.sh'     test_percent
+	assert_key cron-crondtab-dummy-10.service 'StandardInput' 'data'                                           test_percent
+	assert_key cron-crondtab-dummy-10.service 'StandardInputData' "$(printf 'b \n c%%d\n\n\n' | base64 -w0)"   test_percent
+	assert_dat cron-crondtab-dummy-10.sh      'echo a; cat'                                                    test_percent
+	assert_key cron-crondtab-dummy-11.service 'ExecStart'     '/bin/sh /etc/out/cron-crondtab-dummy-11.sh'     test_percent
+	assert_key cron-crondtab-dummy-11.service 'StandardInput' 'data'                                           test_percent
+	assert_key cron-crondtab-dummy-11.service 'StandardInputData' "$(printf 'b \n c%%d\n\n\n\n' | base64 -w0)" test_percent
+	assert_dat cron-crondtab-dummy-11.sh      'echo a; cat'                                                    test_percent
+
+	assert_key cron-anacron-anacrussy-626d2e0fd1f5e39a4b4425d53d92559d.service 'ExecStart'     '/bin/sh /etc/out/cron-anacron-anacrussy-626d2e0fd1f5e39a4b4425d53d92559d.sh' test_percent_anacrontab
+	assert_dat cron-anacron-anacrussy-626d2e0fd1f5e39a4b4425d53d92559d.sh      'echo a\%b\%c'                                                                             test_percent_anacrontab
+	assert_key cron-anacron-anacrussy-90ac7985e1a331e6fd95807d7fd2bc25.service 'ExecStart'     '/bin/sh /etc/out/cron-anacron-anacrussy-90ac7985e1a331e6fd95807d7fd2bc25.sh' test_percent_anacrontab
+	assert_dat cron-anacron-anacrussy-90ac7985e1a331e6fd95807d7fd2bc25.sh      'echo a; cat%b%c\%d'                                                                       test_percent_anacrontab
+}
+
+{
+	rm -f /etc/cron.d/* /etc/anacrontab
+	printf '%s\n' 'CRON_MAIL_SUCCESS=always'    \
+	              'CRON_MAIL_FORMAT=nometadata' \
+	              'MAILTO=root@test.owcy'       > /etc/crontab
+	printf '%s\n' '* * * * * dummy true'        > /etc/cron.d/crondtab
+
+	"$S_C_G" /etc/out-nojob || { err=$?; echo "$S_C_G" /etc/out-nojob = $err >&2; exit $err; }
+	cd /etc/out-nojob || exit
+
+	assert_key cron-crondtab-dummy-0.service 'OnSuccess'   'cron-mail@%n:Success:nometadata.service' test_nojob_OnSuccess
+	assert_key cron-crondtab-dummy-0.service 'OnFailure'   'cron-mail@%n:Failure:nometadata.service' test_nojob_OnFailure
+	assert_key cron-crondtab-dummy-0.service 'Environment' 'MAILTO=root@test.owcy'                   test_nojob_Environment
+}
+
+
+{
+	rm -r /etc/cron.*
+	mkdir /etc/cron.d /etc/cron.daily
+	printf '%s\n' 'CRON_INHERIT_VARIABLES=RANDOM_DELAY NORMAL_VARIABLE'       \
+	              'RANDOM_DELAY=10'                                           \
+	              'NORMAL_VARIABLE=real'                                      \
+	              '* * * * * dummy /bin/true'                                 > /etc/crontab
+	printf '%s\n' '* * * * * dummy /bin/true'                                 \
+	              'NORMAL_VARIABLE=over'                                      \
+	              '* * * * * dummy /bin/true'                                 > /etc/cron.d/crondtab
+	ln -s /bin/true /etc/cron.daily/true
+
+	"$S_C_G" /etc/outI || { err=$?; echo "$S_C_G" /etc/outI = $err >&2; exit $err; }
+	cd /etc/outI || exit
+
+	assert_key cron-crontab-dummy-0.service  'Environment'        'NORMAL_VARIABLE=real' toplevel_control
+	assert_key cron-crontab-dummy-0.timer    'RandomizedDelaySec' '10m'                  toplevel_control
+
+	assert_key cron-crondtab-dummy-0.service 'Environment'        'NORMAL_VARIABLE=real' inherited
+	assert_key cron-crondtab-dummy-0.timer   'RandomizedDelaySec' '10m'                  inherited
+	assert_key cron-crondtab-dummy-1.service 'Environment'        'NORMAL_VARIABLE=over' inherited_overridden
+	assert_key cron-crondtab-dummy-1.timer   'RandomizedDelaySec' '10m'                  inherited_overridden
+
+if [ "$USE_RUN_PARTS" = 'no' ]
+then
+	assert_key cron-daily-true.service       'Environment'        'NORMAL_VARIABLE=real' inherited_runparts
+	assert_key cron-daily-true.timer         'RandomizedDelaySec' '10m'                  inherited_runparts
+fi
+}
+{
+	rm -r /etc/cron.*
+	mkdir /etc/cron.d
+	printf '%s\n' 'CRON_INHERIT_VARIABLES=RANDOM_DELAY NORMAL_VARIABLE'       \
+	              'RANDOM_DELAY=10'                                           \
+	              'NORMAL_VARIABLE=real'                                      > /etc/crontab
+	printf '%s\n' '* * * * * dummy /bin/true'                                 > /etc/cron.d/crondtab
+
+	"$S_C_G" /etc/outI2 || { err=$?; echo "$S_C_G" /etc/outI2 = $err >&2; exit $err; }
+	cd /etc/outI2 || exit
+
+	assert_key cron-crondtab-dummy-0.service 'Environment'        'NORMAL_VARIABLE=real' inherited_nojob
+	assert_key cron-crondtab-dummy-0.timer   'RandomizedDelaySec' '10m'                  inherited_nojob
+}
+
+
+{
+	rm -r /etc/cron.*
+	printf '%s\n' 'root:x:0:0:root:/root:/bin/sh' 'eroot:x:0:0:root:/root:/bin/ed' > /etc/passwd
+	cp "${TESTDIR}crontab" /etc
+	mkdir /etc/cron.daily
+	echo id > /etc/cron.daily/id
+	chmod +x /etc/cron.daily/id
+	> /etc/cron.daily/nonexecutable
+
+	"$S_C_G" /etc/out2 || { err=$?; echo "$S_C_G" /etc/out2 = $err >&2; exit $err; }
+	cd /etc/out2 || exit
+
+	assert_key cron-crontab-henry-0.service 'User'              'henry'                         henry-unknown-user
+	assert_key cron-crontab-henry-0.service 'Requires'          'systemd-user-sessions.service' henry-unknown-user
+	assert_ney cron-crontab-henry-0.service 'RequiresMountsFor'                                 henry-unknown-user
+	assert_key cron-crontab-henry-0.service 'OnFailure'         'cron-mail@%n:Failure.service'  onfailure_escaped
+	assert_key cron-crontab-henry-0.service 'Description'       '[Cron] "1 2 3 4 5 henry echo 0=Vasárnap 1=Hétfő 2=Kedd 3=Szerda 4=Csütörtök 5=Péntek 6=Szombat"' henry-the-hungarian
+
+	assert_key cron-crontab-henry-0.timer   'OnCalendar'       'Fri *-4-3 2:1:00'              henry\'s-calendar
+
+	assert_dat cron-crontab-henry-0.sh      'echo 0=Vasárnap 1=Hétfő 2=Kedd 3=Szerda 4=Csütörtök 5=Péntek 6=Szombat' henry\'s-hungarian-program
+}
+test_test_crontab_common() {
+	assert_key cron-crontab-root-0.service  'User'              'root'                                          root-special
+	assert_ney cron-crontab-root-0.service  'Requires'                                                          root-special
+	assert_ney cron-crontab-root-0.service  'RequiresMountsFor'                                                 root-special
+	assert_key cron-crontab-root-0.timer    'OnCalendar'        '*-*-* *:0,5,10,15,20,25,30,35,40,45,50,55:00'  root-slashed-calendar
+
+
+	assert_key cron-crontab-eroot-0.service 'User'              'eroot'                                         eroot-known-user
+	assert_key cron-crontab-eroot-0.service 'Requires'          'systemd-user-sessions.service'                 eroot-known-user
+	assert_key cron-crontab-eroot-0.service 'RequiresMountsFor' '/root'                                         eroot-known-user
+	assert_key cron-crontab-eroot-0.timer   'OnCalendar'        'Mon,Tue,Wed,Thu,Fri *-*-* 0:0:00'              eroot-mon-fri-\ \ -00
+
+	assert_key cron-crontab-root-1.timer    'Description'       '[Timer] "00  0 * * 0-3 root echo test US mode"' root-US-mode-timer
+	assert_key cron-crontab-root-1.timer    'OnCalendar'        'Sun,Mon,Tue,Wed *-*-* 0:0:00'                   root-US-mode-timer
+	assert_key cron-crontab-root-2.timer    'Description'       '[Timer] "0 0 * * 4-7 root echo test EU mode"'   root-EU-mode-timer
+	assert_key cron-crontab-root-2.timer    'OnCalendar'        'Thu,Fri,Sat,Sun *-*-* 0:0:00'                   root-EU-mode-timer
+
+	assert_key 'cron-crontab-root-e78207bda09f301009747d39e25432fa.timer' 'Description' '[Timer] "@daily root ls"' root-@daily
+	assert_key 'cron-crontab-root-e78207bda09f301009747d39e25432fa.timer' 'OnCalendar'  '*-*-* 3:0:0'              root-@daily
+	assert_key 'cron-crontab-root-e78207bda09f301009747d39e25432fa.timer' 'Persistent'  'true'                     root-@daily
+
+	assert_key 'cron-crontab-root-68d29d8cf7f485d7c7821ca686d61ffd.timer' 'Description' '[Timer] "~ ~ ~ ~ ~ root echo ~"' root-\~
+	assert_key 'cron-crontab-root-68d29d8cf7f485d7c7821ca686d61ffd.timer' 'Persistent'  'true'                            root-\~
+
+if [ "$USE_RUN_PARTS" = 'no' ]
+then
+	[ -e cron-daily-nonexecutable.service ] && { err=1; echo "cron-daily-nonexecutable.service exists!"; }
+
+	assert_key cron-daily-id.service  'Description'       '[Cron] /etc/cron.daily/id'                /etc/cron.daily
+	assert_key cron-daily-id.service  'ExecStartPre'      '-/usr/libexec/systemd-cron/boot_delay 10' /etc/cron.daily    # hourly.daily = 2nd, *5min for each longer one
+	assert_key cron-daily-id.service  'ExecStart'         '/etc/cron.daily/id'                       /etc/cron.daily
+	assert_key cron-daily-id.timer    'OnCalendar'        '*-*-* 5:10:0'                             /etc/cron.daily
+	assert_key cron-daily-id.timer    'Persistent'        'true'                                     /etc/cron.daily
+fi
+}
+test_test_crontab_common
+
+{
+	iconv() { command iconv -f utf-8 -t iso-8859-2; }
+	iconv < "${TESTDIR}crontab" > /etc/crontab
+
+	"$S_C_G" /etc/out3 || { err=$?; echo "$S_C_G" /etc/out3 = $err >&2; exit $err; }
+	cd /etc/out3 || exit
+
+	# All the same except Description (escaped) and program (not escaped)
+	assert_key cron-crontab-henry-0.service 'User'             'henry'                         henry-unknown-user-iconv
+	assert_key cron-crontab-henry-0.service 'Requires'         'systemd-user-sessions.service' henry-unknown-user-iconv
+	assert_ney cron-crontab-henry-0.service 'RequiresMountsFor'                                henry-unknown-user-iconv
+	assert_key cron-crontab-henry-0.service 'Description'      '[Cron] "1 2 3 4 5 henry echo 0=Vas\xe1rnap 1=H\xe9tf\xf5 2=Kedd 3=Szerda 4=Cs\xfct\xf6rt\xf6k 5=P\xe9ntek 6=Szombat"' henry-the-hungarian-iconv
+
+	assert_key cron-crontab-henry-0.timer   'OnCalendar'       'Fri *-4-3 2:1:00'              henry\'s-calendar-iconv
+
+	assert_dat cron-crontab-henry-0.sh      "$(echo 'echo 0=Vasárnap 1=Hétfő 2=Kedd 3=Szerda 4=Csütörtök 5=Péntek 6=Szombat' | iconv)" henry\'s-hungarian-program-iconv
+}
+test_test_crontab_common
+
+exit $err

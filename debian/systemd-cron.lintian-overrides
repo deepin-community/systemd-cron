@@ -1,0 +1,6 @@
+# generators are in a non-default path
+spare-manual-page [usr/share/man/man8/systemd-crontab-generator.8.gz]
+# compatibility with an old typo in systemd itself
+# after UsrMerge is complete:
+# spelling-error-in-binary anually annually [usr/lib/systemd/system-generators/systemd-crontab-generator]
+spelling-error-in-binary

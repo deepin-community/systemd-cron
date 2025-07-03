@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+if dpkg-statoverride --list /usr/libexec/systemd-cron/crontab_setgid > /dev/null ; then
+    dpkg-statoverride --remove /usr/libexec/systemd-cron/crontab_setgid
+fi
+
+#DEBHELPER#

@@ -1,0 +1,2 @@
+rm_conffile /etc/cron.yearly/.placeholder 1.15.19-4 systemd-cron
+rm_conffile /etc/cron.weekly/systemd-cron

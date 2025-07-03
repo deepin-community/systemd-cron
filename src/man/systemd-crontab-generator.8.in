@@ -1,0 +1,105 @@
+.Dd 2023-08-13
+.Dt SYSTEMD-CRONTAB-GENERATOR 8
+.Os systemd-cron @version@
+.
+.Sh NAME
+.Nm systemd-crontab-generator
+.Nd translate cron schedules in systemd Units
+.
+.Sh SYNOPSIS
+.Li /usr/lib/systemd/system-generators/ Ns Nm systemd-crontab-generator
+.Ar output-dir
+.
+.Sh DESCRIPTION
+.Nm systemd-crontab-generator
+is a
+.Xr systemd.generator 7
+translating classic cron
+.Sx FILES
+into native
+.Xr systemd.timer 5 Ns / Ns Xr systemd.service 5
+pairs.
+.Pp
+It runs automatically
+.Bl -bullet -compact -offset 2n -width 1n
+.It
+during early boot,
+.
+.It
+a second time by
+.Ic cron-after-var.service
+if
+.Pa /var
+is a separate mount-point,
+in order to process user crontabs in
+.Pa @statedir@ ,
+.
+.It
+after each update to
+.Pa /etc/crontab Ns \(dg
+and
+.Pa /etc/anacrontab Ns \(dg,
+and
+.
+.It
+when packages add files under
+.Pa /etc/cron.d Ns \(dg
+.El
+(\(dg: monitored by
+.Ic cron-update.path ) .
+.
+.Sh FILES
+.Bl -tag -compact -width ".Pa @statedir@"
+.\" Starts same as in systemd.cron.7
+.It Pa /etc/crontab
+Administrator's system crontab, see
+.Xr crontab 5 .
+.
+.It Pa /etc/cron.d
+System crontabs managed by packages live here.
+.
+.It Pa /etc/anacrontab
+.Xr anacrontab 5
+.
+.It Pa @statedir@
+Users' crontabs live here.
+.
+.It Pa /run/systemd/generator
+Automatically generated units go here.
+.
+.It Pa /run/crond.reboot
+If this file exists,
+.Sy @reboot
+jobs aren't re-generated.
+Managed automatically.
+.
+.It Pa /var/lib/systemd/timers
+.Xr systemd.timer 5 Ns s
+with the
+.Fa Persistent
+flag set store their timestamps here.
+.El
+.
+.Sh DIAGNOSTICS
+.\" First para same as in systemd.cron.7
+.Nm systemctl Cm list-timers
+shows an overview of current timers and when they'll elapse.
+.Pp
+If you see something to the effect of
+.Dl /usr/lib/systemd/system-generators/systemd-crontab-generator failed with error code 1.
+in the journal, you can run
+.Li /usr/lib/systemd/system-generators/ Ns Nm systemd-crontab-generator Pa /tmp/test
+for more verbose output.
+.
+.Sh SEE ALSO
+.Xr crontab 5 ,
+.Xr systemd.unit 5 ,
+.Xr systemd.timer 5 ,
+.Xr systemd.cron 7
+.
+.\".Sh AUTHOR
+.\".An -split
+.\".An Konstantin Stepanov Aq Mt me@kstep.me
+.\"\(em generator
+.\".An Alexandre Detiste Aq Mt alexandre@detiste.be
+.\"\(em manual

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "configure" ]
+then
+
+# <= BookWorm
+if dpkg-statoverride --list /lib/systemd-cron/crontab_setgid > /dev/null ; then
+    dpkg-statoverride --remove /lib/systemd-cron/crontab_setgid
+fi
+
+# Fixup crontab binary for new group 'crontab' created by 'cron-daemon-common'.
+if ! dpkg-statoverride --list /usr/libexec/systemd-cron/crontab_setgid > /dev/null ; then
+    dpkg-statoverride --update --add root crontab 2755 /usr/libexec/systemd-cron/crontab_setgid
+fi
+
+# Remove leftover setgid bit from Vixie-cron
+if dpkg-statoverride --list /usr/bin/crontab > /dev/null ; then
+    dpkg-statoverride --remove /usr/bin/crontab
+    chown root:root /usr/bin/crontab
+    chmod 0755 /usr/bin/crontab
+fi
+
+rm -rf /lib/systemd/system-generators/__pycache__/ 2>/dev/null || :
+
+# remainder is now solely handled by cron-daemon-common.postinst
+# to avoid problems such as CVE-2017-9525
+fi
+
+
+#DEBHELPER#
