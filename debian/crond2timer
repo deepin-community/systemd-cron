@@ -1,0 +1,12 @@
+# old new [package [comment]
+# if "package" is not explicited it is $old
+#
+debian-edu-config debian-edu-update-netblock
+mythtv-status mythtv-status_update-motd
+ntpsec ntpsec-rotate-stats
+ntpsec-ntpviz ntpviz-daily
+painintheapt painintheapt-daily
+php phpsessionclean php-common
+roundcube-core roundcube-cleandb
+sysstat sysstat-collect
+tuptime tuptime-sync

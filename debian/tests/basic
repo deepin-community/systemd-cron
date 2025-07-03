@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+set -u
+
+echo "WHOAMI:"
+whoami
+
+mkdir -p /tmp/generator
+
+/lib/systemd/system-generators/systemd-crontab-generator /tmp/generator 2>&1
+
+find /tmp/generator
+
+rm -rf /tmp/generator

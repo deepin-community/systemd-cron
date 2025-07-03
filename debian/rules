@@ -1,4 +1,37 @@
 #!/usr/bin/make -f
 
+# gbp import-orig --pristine-tar --uscan
+
+export DH_VERBOSE=1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+include /usr/share/dpkg/pkg-info.mk
+
 %:
 	dh $@
+
+override_dh_auto_configure:
+	./configure \
+--statedir=/var/spool/cron/crontabs \
+--enable-boot=no \
+--with-part2timer=debian/part2timer \
+--with-crond2timer=debian/crond2timer \
+--with-version=$(DEB_VERSION)
+
+override_dh_auto_build:
+	dh_auto_build --buildsystem=makefile
+	strings out/build/bin/systemd-crontab-generator | grep -q apt-compat
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	make SHELLCHECK=@\# test-nounshare
+endif
+
+override_dh_installsystemd:
+	# Only enable+start cron.target, it pulls in all the others units.
+	dh_installsystemd cron.target
+
+execute_after_dh_auto_install:
+	# automatic with DebHelper >= 14
+	dh_installsysusers

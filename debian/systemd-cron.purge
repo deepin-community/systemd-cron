@@ -1,0 +1,2 @@
+/var/lib/systemd/timers/stamp-cron-*.timer
+/var/lib/systemd/timers/stamp-systemd-cron-cleaner.timer

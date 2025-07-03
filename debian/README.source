@@ -1,0 +1,2 @@
+{part,crond}2timer were obtained by scouring Contents files of sid on 2023-08-14;
+the procedure is outlined in https://salsa.debian.org/detiste-guest/systemd-cron/-/merge_requests/6

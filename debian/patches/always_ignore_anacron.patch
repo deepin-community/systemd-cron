@@ -1,0 +1,14 @@
+Debian-BugNr: 1106000
+Forwarded: https://github.com/systemd-cron/systemd-cron/commit/3917f4f89d09f85942978f985117007575dac0c0
+
+--- a/src/bin/systemd-crontab-generator.cpp
++++ b/src/bin/systemd-crontab-generator.cpp
+@@ -1304,7 +1304,7 @@
+ 		return true;
+ 
+ 	bool backup = name[0] == '.' || name.find('~') != std::string_view::npos || name.find(".dpkg-"sv) != std::string_view::npos ||
+-	              name.find(".rpm"sv) != std::string_view::npos || name == "0anacron"sv;
++	              name.find(".rpm"sv) != std::string_view::npos || name == "0anacron"sv || name == "anacron"sv;
+ 	if(backup)
+ 		log(Log::DEBUG, "ignoring %s/%.*s", path, FORMAT_SV(name));
+ 	return backup;

@@ -1,0 +1,14 @@
+# old new [package [comment]
+# if "package" is not explicited it is $old
+#
+aide dailyaidecheck aide-common
+apt-compat apt-daily apt
+debian-edu-config debian-edu-cups-queue-autoflush
+dpkg dpkg-db-backup
+lighttpd lighttpd-maint
+mythtv-status mythtv-status_health-check
+plocate plocate-updatedb
+privoxy privoxy-cleanup
+spamassassin spamassassin-maintenance
+sysstat sysstat-summary
+wtmpdb wtmpdb-rotate

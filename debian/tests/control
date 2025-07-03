@@ -1,0 +1,12 @@
+# https://ci.debian.net/doc/file.MAINTAINERS.html
+
+Tests:
+ basic,
+ crontab,
+
+Tests:
+ generator,
+ mail-for-job,
+ remove-stale-stamps,
+Restrictions:
+ needs-root,

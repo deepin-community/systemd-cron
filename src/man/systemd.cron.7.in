@@ -1,0 +1,263 @@
+.Dd 2023-08-13
+.Dt SYSTEMD.CRON 7
+.Os systemd-cron @version@
+.
+.Sh NAME
+.Nm systemd.cron
+.Nd systemd units for cron periodic jobs
+.
+.Sh SYNOPSIS
+.de headline
+.if \\n[timer_\\$1] \\{ .
+.br
+cron-\\$1.timer, cron-\\$1.target, cron-\\$1.service
+. \\}
+..
+cron.target
+.headline boot
+.headline minutely
+.headline hourly
+.headline daily
+.headline weekly
+.headline monthly
+.headline quarterly
+.headline semi-annually
+.headline yearly
+.br
+cron-update.path, cron-update.service
+.br
+cron-mail@.service
+.
+.Sh DESCRIPTION
+These units provide the functionality usually afforded by the cron daemon \(em
+running scripts in
+.Pa /etc/cron. Ns Ar schedule
+directories and sending mail on failure.
+.Pp
+Crontabs are monitored by
+.Nm cron-update.path
+and are automatically translated by
+.Xr systemd-crontab-generator 8 .
+.
+.Sh FILES
+.Bl -tag -compact -width ".Pa @statedir@"
+.\" Starts same as in systemd-crontab-generator.8
+.It Pa /etc/crontab
+Administrator's system crontab, see
+.Xr crontab 5 .
+.
+.It Pa /etc/cron.d
+System crontabs managed by packages live here.
+.
+.It Pa /etc/anacrontab
+.Xr anacrontab 5
+.
+.It Pa @statedir@
+Users' crontabs live here.
+.
+.Pp
+.de etccron
+.if \\n[etccron_\\$1] \{ .
+.It Pa /etc/cron.\\$1
+Directory for scripts to be executed \\$2.
+. \}
+..
+.etccron boot          "on boot"
+.etccron minutely      "every minute"
+.etccron hourly        "every hour"
+.etccron daily         "every day"
+.etccron weekly        "every week"
+.etccron monthly       "every month"
+.etccron quarterly     "every 3 months"
+.etccron semi-annually "every 6 months"
+.etccron yearly        "every year"
+.Pp
+.
+.It Pa /usr/lib/systemd/system/ Ns Ar schedule Ns Pa .timer
+.It Pa /etc/systemd/system/ Ns Ar schedule Ns Pa .timer
+Native systemd timers will override cron jobs with the same name.
+.Pp
+You can also use this mechanism to mask an unneeded crontab provided by a package via
+.Nm systemctl Cm mask Ar package Ns Li .timer .
+.El
+.
+.Sh UNITS
+.Bl -tag -compact -width ".Pa /etc/cron.semi-annually"
+.It Nm cron.target
+Target unit which starts the others, needs to be enabled to use systemd-cron.
+.
+.It Nm cron-update.path
+Monitors
+.Sx FILES
+and calls
+.
+.It Nm cron-update.service
+which runs
+.Nm systemctl Cm daemon-reload
+to re-run the generator.
+.Pp
+.
+.if '@enable_runparts@'yes' \{ .
+.It Nm cron- Ns Ar schedule Ns Nm .timer
+Triggers
+.Nm cron- Ns Ar schedule Ns Nm .service
+on
+.Ar target .
+Started and stopped by the
+cron.target unit.
+.
+.It Nm cron- Ns Ar schedule Ns Nm .target
+Pulls in all service units wanted by the target, i.a.\&
+.Nm cron- Ns Ar schedule Ns Nm .service .
+.
+.It Nm cron- Ns Ar schedule Ns Nm .service
+Runs scripts in the
+.Pa /etc/cron. Ns Ar *
+directories.
+You can use
+.Xr journalctl 1
+to view the output of scripts run from these units.
+.Pp
+. \}
+.
+.It Nm cron-mail@.service
+Sends mail
+(via
+.Xr sendmail 1 ,
+which can be overridden with
+.Pf $ Ev SENDMAIL )
+in case a cron service unit fails, succeeds, or succeeds-but-only-if-it-wrote-something.
+The instance name
+.Pq the bit after the Sy @
+is the unit name,
+followed by optional arguments delimited by
+colons
+.Pq Sq Sy \&: :
+.Bl -tag -compact -width ".Sy nometadata"
+.It Sy nonempty
+exit silently if the unit produced no output
+.Pq equivalent to Ev CRON_MAIL_SUCCESS Ns = Ns Sy nonempty
+for
+.Va OnSuccess Ns = ) ,
+.
+.It Sy nometadata
+don't include
+.Nm systemctl Cm status
+output, don't add usual
+.Nm journalctl
+metadata to the output
+.Pq equivalent to Ev CRON_MAIL_FORMAT Ns = Ns Sy nometadata ,
+and
+.
+.It Sy verbose
+log reason before exiting silently.
+.El
+(upper-case arguments are ignored).
+.Pp
+Overriding this via
+.Nm systemctl Cm edit
+can be useful, especially for units under
+.Pa /etc/cron. Ns Ar * .
+.El
+.
+.Sh BUGS
+Do
+.Em not
+use with a cron daemon or anacron, otherwise scripts may be executed multiple times.
+.Pp
+All services are run with
+.Fa Type Ns = Ns Sy oneshot ,
+which means you can't use systemd-cron to launch long lived forking daemons.
+.
+.Sh EXTENSIONS
+The generator can optionally turn any crontabs in persistent timers with the
+.Ev PERSISTENT Ns = Ns Sy true
+flag, while a regular cron and anacron setup won't catch up on the missed executions of crontabs on reboot.
+.
+.Sh EXAMPLES
+.Ss Start cron units
+.Bd -literal -compact
+.Li # Nm systemctl Cm start Li cron.target
+.Ed
+.
+.Ss Start cron units on boot
+.Bd -literal -compact
+.Li # Nm systemctl Cm enable Li cron.target
+.Ed
+.
+.Ss View script output
+.Bd -literal -compact
+.Li # Nm journalctl -u cron-daily
+.Ed
+.
+.Ss Override some generated timer start time
+.Bd -literal -compact -offset 4n
+.Li # Nm systemctl Cm edit Li cron-geoip-database-contrib-root-1.timer
+.Ed
+and add
+.Bd -literal -compact -offset 4n
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 18:36:00
+.Ed
+.
+.Ss "Override cron-daily.service priority, useful for old computers"
+.Bd -literal -compact -offset 4n
+.Li # Nm systemctl Cm edit Li cron-daily.service
+.Ed
+and add
+.Bd -literal -compact -offset 4n
+[Service]
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
+.Ed
+.
+.Ss "Example service file executed every hour"
+.Bd -literal -compact
+[Unit]
+Description=Update the man db
+
+[Service]
+Nice=19
+IOSchedulingClass=2
+IOSchedulingPriority=7
+ExecStart=/usr/bin/mandb --quiet
+
+[Install]
+WantedBy=cron-hourly.target
+.Ed
+.
+.Sh NOTES
+The exact times scripts are executed is determined by the values of the special calendar events
+.Sy hourly ,
+.Sy daily ,
+.Sy weekly ,
+.Sy monthly ,
+and
+.Sy yearly
+defined in
+.Xr systemd.time 7 .
+.if '@enable_runparts@'yes' \{ .
+.Pp
+.Xr run-parts 8
+is used to run scripts, which must be executable by root.
+. \}
+.
+.Sh DIAGNOSTICS
+.\" First para same as in systemd-crontab-generator.8
+.Nm systemctl Cm list-timers
+shows an overview of current timers and when they'll elapse.
+.
+.Sh SEE ALSO
+.Xr crontab 1 ,
+.Xr systemd 1 ,
+.Xr crontab 5 ,
+.Xr systemd.service 5 ,
+.Xr systemd.timer 5 ,
+.Xr systemd.unit 5 ,
+.Xr systemd.time 7 ,
+.Xr run-parts 8 ,
+.Xr systemd-crontab-generator 8
+.
+.\".Sh AUTHOR
+.\".An Dwayne Bent

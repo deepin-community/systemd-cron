@@ -1,0 +1,2 @@
+#!/bin/sh
+R_S_S=/usr/libexec/systemd-cron/remove_stale_stamps exec unshare -rm test/test-r_s_s

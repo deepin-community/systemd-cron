@@ -1,0 +1,149 @@
+.Dd 2023-08-13
+.Dt CRONTAB 1
+.Os systemd-cron @version@
+.
+.Sh NAME
+.Nm crontab
+.Nd maintain crontab files for individual users
+.
+.Sh SYNOPSIS
+.Nm
+.Op Fl u Ar user
+.Op Ar newtab
+.
+.Nm
+.Fl l
+.Op Fl u Ar user
+.
+.Nm
+.Fl r
+.Op Fl i
+.Op Fl u Ar user
+.
+.Nm
+.Fl e
+.Op Fl u Ar user
+.
+.Nm
+.Fl s
+.
+.Nm
+.Fl t
+.Ar line
+.
+.Nm
+.Fl T
+.Ar crontab
+.
+.Sh DESCRIPTION
+.Nm
+lets users install, uninstall, view, and edit recurrent jobs in the
+.Xr crontab 5
+format,
+as well as pre-view and convert them to
+.Xr systemd.timer 5
+pairs.
+root may also spy on who which users have installed crontabs.
+.Pp
+.\" Assumes DEFAULT_NOACCESS=0
+Each user may have their own crontab, but this can be limited by
+.Pa /etc/cron.allow
+to create an explicit allow-list or
+.Pa /etc/cron.deny
+to deny access to individual users.
+.Pp
+Crontabs are checked before installing \(em
+if they are found to be invalid, installation is aborted and a summary of errors is written to the standard error stream.
+.
+.Sh OPTIONS
+.Bl -tag -compact -width ".Fl u , -user Ns = Ns Ar user"
+.It (by default)
+replace the user's crontab from
+.Ar newtab
+.Pq standard input stream if Qo Sy - Qc , the default .
+.
+.It Fl l , -list
+Copy user's crontab to the standard output stream, or error if there is none.
+.
+.It Fl r , -remove
+Remove user's crontab.
+.It Fl i , -ask
+Output a confirmation prompt before doing so.
+.
+.It Fl e , -edit
+Let user edit crontab, install when they're done.
+.
+.It Fl s , -show
+List which users have a crontab installed.
+Nonexistent users are warned about to the standard error stream.
+Only root can do this.
+.
+.It Fl t , -translate
+Validate and translate a
+.Xr crontab 5
+.Ar line
+into a native
+.Xr systemd.timer 5
+pair to the standard output stream.
+.
+.It Fl T , -test
+Validate whether
+.Ar crontab
+is a valid
+.Xr crontab 5
+file.
+.Pp
+.
+.It Fl u , -user Ns = Ns Ar user
+Edit
+.Ar user Ns 's
+crontab instead of the currently-logged-in user's.
+Only root can do this, and they should be careful about using
+.Nm
+without this option \(em the current user is determined by
+.Pf $ Ev LOGNAME ,
+.Pf $ Ev USER ,
+.Pf $ Ev LNAME
+.Pf $ Ev USERNAME ,
+and only then by the real UID!
+.El
+.
+.Sh FILES
+.Bl -tag -compact -width ".Pa @statedir@"
+.\" Assumes DEFAULT_NOACCESS=0
+.It Pa /etc/cron.allow
+If exists, only users listed here (one username per line) can install their own crontabs.
+Otherwise, everyone can.
+.
+.It Pa /etc/cron.deny
+Users listed here aren't allowed to install their own crontabs.
+.
+.It Pa @statedir@
+Crontabs live here.
+.El
+.
+.Sh ENVIRONMENT
+.Ev EDITOR ,
+.Ev VISUAL ,
+.Nm editor ,
+.Nm vim ,
+.Nm nano ,
+and
+.Nm mcedit
+are tried, in order, when using
+.Fl e .
+.
+.Sh SEE ALSO
+.Xr crontab 5 ,
+.Xr systemd.cron 7
+for a summary of the format and how to tweak installed cronjobs \(em
+.Nm systemctl Cm edit Li cron- Ns Ar schedule Ns Li .\& Ns Brq Li timer Ns |\& Ns Li service .
+.
+.Sh LIMITATIONS
+SELinux is not supported.
+.
+.\".Sh AUTHOR
+.\".An -split
+.\".An Konstantin Stepanov Aq Mt me@kstep.me
+.\".An Alexandre Detiste Aq Mt alexandre@detiste.be
+.\"\(em manual and setgid helper

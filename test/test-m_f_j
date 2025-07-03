@@ -1,0 +1,26 @@
+#!/bin/sh
+# needs to run as root of a UTS namespace to set hostname
+# uses fake "systemctl"/"sendmail" programs to validate the output
+set -u
+M_F_J="${M_F_J:-"$PWD/out/build/bin/mail_for_job"}"
+trap 'rm -rf "$tmpdir"' EXIT INT
+tmpdir="$(mktemp -d)/"
+
+if [ $# -eq 0 ]
+then
+    read -r V < VERSION
+else
+    V="$1"
+fi
+
+cd test/m_f_j || exit
+hostname tarta
+
+PATH=".:$PATH"
+err=0
+for f in *.service; do
+    of="${f%.service}.output"
+    sed "s#@VERSION@#${V}#" < "$of" > "${tmpdir}$of"
+    "$M_F_J" "$f":verbose 2>&1 | diff -u "${tmpdir}$of" - || err=1
+done
+exit $err
